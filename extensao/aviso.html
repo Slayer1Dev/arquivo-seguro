@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Arquivo Seguro: aviso</title>
+<style>
+  :root { --cor: #b06000; }
+  body.alto { --cor: #c5221f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.5 system-ui, "Segoe UI", Roboto, sans-serif; color: #1f1f1f; background: #fff; border-top: 8px solid var(--cor); }
+  main { padding: 20px 24px 24px; }
+  h1 { margin: 0 0 4px; font-size: 21px; line-height: 1.25; color: var(--cor); }
+  .sub { margin: 0 0 14px; color: #5f6368; }
+  .nome { font: 14px/1.4 ui-monospace, Consolas, monospace; background: #f1f3f4; border-radius: 6px; padding: 8px 10px; overflow-wrap: anywhere; }
+  ul { margin: 12px 0; padding-left: 20px; }
+  li { margin: 4px 0; }
+  .conselho { font-weight: 600; margin: 14px 0; }
+  .botoes { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+  button { font: inherit; font-weight: 600; border-radius: 6px; padding: 9px 16px; cursor: pointer; border: 1px solid #dadce0; background: #fff; color: #1f1f1f; }
+  button.principal { background: var(--cor); border-color: var(--cor); color: #fff; }
+  button:focus-visible { outline: 2px solid #1f1f1f; outline-offset: 2px; }
+  button:disabled { opacity: .5; cursor: default; }
+  [hidden] { display: none !important; }
+  #contagem { margin: 12px 0 0; color: #5f6368; }
+  #estado { margin-top: 14px; font-weight: 600; }
+  footer { margin-top: 20px; color: #5f6368; font-size: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <h1 id="titulo">Verificando o download...</h1>
+  <p class="sub" id="origem"></p>
+  <div class="nome" id="nome"></div>
+  <ul id="motivos"></ul>
+  <p class="conselho" id="conselho"></p>
+  <div class="botoes" id="decisao" hidden>
+    <button class="principal" id="cancelar" type="button">Cancelar download</button>
+    <button id="baixar" type="button" disabled>Baixar mesmo assim</button>
+  </div>
+  <p id="contagem" role="status" hidden></p>
+  <div class="botoes" id="apos" hidden>
+    <button class="principal" id="apagar" type="button">Apagar o arquivo</button>
+    <button id="pasta" type="button">Mostrar na pasta</button>
+    <button id="manter" type="button">Manter, eu sei o que é</button>
+  </div>
+  <div class="botoes" id="interrompido" hidden>
+    <button id="dispensar" type="button">Dispensar aviso</button>
+  </div>
+  <div id="estado" role="status"></div>
+  <footer>Arquivo Seguro · a análise é feita só pelo nome do arquivo, no seu computador. Nada é enviado.</footer>
+</main>
+<script src="aviso.js"></script>
+</body>
+</html>

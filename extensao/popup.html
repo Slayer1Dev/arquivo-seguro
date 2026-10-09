@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Arquivo Seguro</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; width: 340px; font: 14px/1.45 system-ui, "Segoe UI", Roboto, sans-serif; color: #1f1f1f; background: #fff; }
+  header { padding: 12px 14px; border-bottom: 1px solid #e0e0e0; display: flex; align-items: center; gap: 10px; }
+  header img { width: 28px; height: 28px; }
+  h1 { margin: 0; font-size: 16px; }
+  section { padding: 10px 14px; border-bottom: 1px solid #e0e0e0; }
+  label { display: flex; gap: 10px; align-items: flex-start; padding: 5px 0; cursor: pointer; }
+  label small { display: block; color: #5f6368; font-size: 12px; }
+  input[type=checkbox] { margin-top: 3px; width: 16px; height: 16px; flex: none; }
+  h2 { margin: 0 0 6px; font-size: 13px; color: #5f6368; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+  ol { list-style: none; margin: 0; padding: 0; max-height: 240px; overflow: auto; }
+  li { padding: 6px 0 6px 10px; border-left: 4px solid #b06000; margin: 6px 0; }
+  li.alto { border-left-color: #c5221f; }
+  .nome { font: 12.5px/1.35 ui-monospace, Consolas, monospace; overflow-wrap: anywhere; }
+  .meta { color: #5f6368; font-size: 12px; }
+  .vazio { color: #5f6368; margin: 4px 0; }
+  .pendente { border-left-color: #1a73e8; }
+  .pendente.alto { border-left-color: #c5221f; }
+  .pendente button { margin-top: 4px; }
+  button { font: inherit; font-size: 12px; background: none; border: 0; color: #1a73e8; cursor: pointer; padding: 2px 0; }
+  footer { padding: 8px 14px; color: #5f6368; font-size: 12px; }
+</style>
+</head>
+<body>
+  <header><img src="icones/icone48.png" alt=""><h1>Arquivo Seguro</h1></header>
+  <section>
+    <label><input type="checkbox" id="ativo">
+      <span>Proteção ligada<small>Confere downloads e anexos de e-mail e WhatsApp Web.</small></span></label>
+    <label><input type="checkbox" id="todos">
+      <span>Verificar links em todos os sites<small>Opcional. O navegador vai pedir sua permissão.</small></span></label>
+    <label><input type="checkbox" id="confirmarTodos">
+      <span>Pedir confirmação em TODO download<small>Desligado por padrão. Quando consegue pausar, exige 10 segundos para continuar.</small></span></label>
+  </section>
+  <section>
+    <h2>Downloads aguardando decisão</h2>
+    <p class="vazio" id="semPendencias">Nenhum download aguardando decisão.</p>
+    <ol id="pendencias"></ol>
+  </section>
+  <section>
+    <h2><span>Alertas recentes</span><button id="limpar" type="button">Limpar</button></h2>
+    <p class="vazio" id="vazio">Nenhum arquivo suspeito até agora.</p>
+    <ol id="lista"></ol>
+  </section>
+  <footer>Tudo roda no seu computador. Nenhum dado é enviado.</footer>
+  <script src="popup.js"></script>
+</body>
+</html>

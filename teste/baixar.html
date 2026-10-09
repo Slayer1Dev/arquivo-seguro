@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Teste de download: Arquivo Seguro</title>
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; max-width: 640px; margin: 24px auto; padding: 0 16px; }
+  .item { border: 1px solid #ccc; border-radius: 8px; padding: 12px 16px; margin: 12px 0; }
+  a.botao { display: inline-block; margin-top: 6px; background: #1a73e8; color: #fff; text-decoration: none; padding: 7px 14px; border-radius: 6px; }
+  .esperado { color: #5f6368; font-size: 13px; }
+</style>
+</head>
+<body>
+<h1>Teste de download</h1>
+<p>Cada botão baixa somente texto ou comentário <strong>inofensivo</strong>. O nome do arquivo é o objeto do teste; nenhum exemplo é um programa, atalho, pacote, documento com macro ou PDF funcional.</p>
+<p>Com a confirmação geral desligada, os nomes suspeitos devem pedir decisão. Os controles não devem abrir aviso por nome. Com a confirmação geral ligada, todos devem pedir decisão.</p>
+
+<div class="item">
+  <strong>Boleto_Outubro.pdf.js</strong> — <span class="esperado">deve avisar: ALTO</span><br>
+  <a class="botao" href="iscas/Boleto_Outubro.pdf.js" download="Boleto_Outubro.pdf.js">Baixar</a>
+</div>
+<div class="item">
+  <strong>Nota_Fiscal_4471.pdf.hta</strong> — <span class="esperado">deve avisar: ALTO</span><br>
+  <a class="botao" href="iscas/Nota_Fiscal_4471.pdf.hta" download="Nota_Fiscal_4471.pdf.hta">Baixar</a>
+</div>
+<div class="item">
+  <strong>curriculo.docx.lnk</strong> — <span class="esperado">deve avisar: ALTO</span><br>
+  <a class="botao" href="iscas/curriculo.docx.lnk" download="curriculo.docx.lnk">Baixar</a>
+</div>
+<div class="item">
+  <strong>Boleto.lnk</strong> — <span class="esperado">deve avisar: ALTO (nome de documento em atalho)</span><br>
+  <a class="botao" href="iscas/Boleto.lnk" download="Boleto.lnk">Baixar</a>
+</div>
+<div class="item">
+  <strong>Fatura_pdf.exe</strong> — <span class="esperado">deve avisar: ALTO (underscore antes de PDF)</span><br>
+  <a class="botao" href="iscas/Fatura_pdf.exe" download="Fatura_pdf.exe">Baixar</a>
+</div>
+<div class="item">
+  <strong>contrato.pdf.msixbundle</strong> — <span class="esperado">deve avisar: ALTO (pacote com nome de PDF)</span><br>
+  <a class="botao" href="iscas/contrato.pdf.msixbundle" download="contrato.pdf.msixbundle">Baixar</a>
+</div>
+<div class="item">
+  <strong>planilha.xlsx.xlsm</strong> — <span class="esperado">deve avisar: ALTO (formato capaz de conter macros)</span><br>
+  <a class="botao" href="iscas/planilha.xlsx.xlsm" download="planilha.xlsx.xlsm">Baixar</a>
+</div>
+<div class="item">
+  <strong>fotos.jpg.zip</strong> — <span class="esperado">deve avisar: MÉDIO (compactado com nome de imagem)</span><br>
+  <a class="botao" href="iscas/fotos.jpg.zip" download="fotos.jpg.zip">Baixar</a>
+</div>
+<div class="item">
+  <strong>relatorio.pdf</strong> — <span class="esperado">NÃO deve avisar (nome comum; conteúdo de teste é texto)</span><br>
+  <a class="botao" href="iscas/relatorio.pdf" download="relatorio.pdf">Baixar</a>
+</div>
+<div class="item">
+  <strong>arquivos.zip</strong> — <span class="esperado">NÃO deve avisar (compactado sem sinal de disfarce; conteúdo de teste é texto)</span><br>
+  <a class="botao" href="iscas/arquivos.zip" download="arquivos.zip">Baixar</a>
+</div>
+<div class="item">
+  <strong>atalho-projeto.lnk</strong> — <span class="esperado">NÃO deve avisar (atalho sem sinal de disfarce; conteúdo de teste é texto)</span><br>
+  <a class="botao" href="iscas/atalho-projeto.lnk" download="atalho-projeto.lnk">Baixar</a>
+</div>
+<div class="item">
+  <strong>planilha.xlsm</strong> — <span class="esperado">NÃO deve avisar só pelo nome (formato capaz de conter macros; conteúdo de teste é texto)</span><br>
+  <a class="botao" href="iscas/planilha.xlsm" download="planilha.xlsm">Baixar</a>
+</div>
+
+<hr>
+<p><a href="simulacao.html">→ Ir para o teste de anexos na página (sem baixar nada)</a></p>
+</body>
+</html>

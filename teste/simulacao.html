@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Simulação de caixa de entrada</title>
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; max-width: 720px; margin: 24px auto; padding: 0 16px; }
+  .email { border: 1px solid #ccc; border-radius: 8px; padding: 12px 16px; margin: 16px 0; }
+  .anexo { display: inline-block; border: 1px solid #ccc; border-radius: 6px; padding: 6px 10px; margin: 6px 6px 0 0; }
+</style>
+</head>
+<body>
+<h1>Simulação de caixa de entrada</h1>
+<p>Página de teste: carrega as regras e o content script direto, sem instalar a extensão.</p>
+
+<div class="email" id="golpe1">
+  <strong>Financeiro: seu boleto venceu</strong>
+  <p>Segue o boleto atualizado em anexo.</p>
+  <span class="anexo" download_url="application/pdf:Boleto_Outubro.pdf.js:https://exemplo.invalid/anexo/1">Boleto_Outubro.pdf.js</span>
+</div>
+
+<div class="email" id="golpe2">
+  <strong>NF-e emitida</strong>
+  <p>Baixe sua nota: <a href="https://exemplo.invalid/arquivos/nf4471.hta">Nota_Fiscal_4471.pdf</a></p>
+</div>
+
+<div class="email" id="normal">
+  <strong>Newsletter de tecnologia</strong>
+  <p>Novidades do Node.js e do Next.js, veja o <a href="https://exemplo.invalid/repo/app.js">app.js</a> de exemplo
+     e o <a href="https://exemplo.invalid/docs/relatorio.pdf">relatorio.pdf</a>. Também há
+     <a href="https://exemplo.invalid/ver.html">manual.pdf</a> para ler no navegador.</p>
+</div>
+
+<button id="chegar" type="button">Simular novo e-mail chegando</button>
+<div id="novos"></div>
+
+<script src="../extensao/regras.js"></script>
+<script src="../extensao/conteudo.js"></script>
+<script>
+  document.getElementById('chegar').addEventListener('click', () => {
+    const div = document.createElement('div');
+    div.className = 'email';
+    div.innerHTML = '<strong>Currículo</strong><p>Anexo: <span class="anexo">curriculo.docx.lnk</span></p>';
+    document.getElementById('novos').appendChild(div);
+  });
+</script>
+</body>
+</html>
