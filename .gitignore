@@ -1,0 +1,15 @@
+# Pacotes e backups locais
+arquivo-seguro-*.zip
+backup/
+
+# Perfil temporário do navegador e arquivos gerados
+.chrome-tmp/
+node_modules/
+.env
+.env.*
+teste/.chrome-validacao.mjs
+
+# Rascunhos internos
+PROMPT-DAYBREAK.md
+publicacao/
+
