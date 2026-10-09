@@ -4,7 +4,7 @@
 
 A extensão Arquivo Seguro **não envia, compartilha nem vende dados**. Ela processa nomes e estados de downloads localmente, não tem servidor, não usa análise de uso (analytics) e não faz requisições de rede próprias.
 
-O uso das informações obtidas pelas APIs do Google cumpre a Política de Dados do Usuário da Chrome Web Store, incluindo os requisitos de Uso Limitado.
+As informações obtidas pelas APIs do navegador são usadas somente para os alertas e decisões descritos nesta política.
 
 ## O que a extensão lê
 

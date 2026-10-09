@@ -61,16 +61,22 @@ Checklist para a verificação manual no Chrome:
 5. Teste um arquivo muito pequeno e confira se, caso termine antes da pausa, a janela diz que **já foi baixado**. Apague somente pelo botão explícito se desejar.
 6. Com um download pausado, feche as ferramentas do service worker, aguarde a suspensão e reabra o popup; confira se a decisão e o prazo persistem. Teste também mudança de nome ou estado reportada pelo Chrome. Registre o que o navegador realmente mostrou; não marque como pausado um arquivo já concluído.
 
-## Publicar na Chrome Web Store
+## Instalação manual no Chrome (Windows)
 
-Este repositório contém o código-fonte da versão `1.1.0`. Os ZIPs de distribuição e os backups são guardados localmente, fora do GitHub. Para instalar a partir do código, use **Carregar sem compactação** em `chrome://extensions` e selecione a pasta `extensao`.
+No PowerShell, obtenha o projeto e copie o caminho da pasta da extensão:
 
-O envio à loja depende de conta de desenvolvedor registrada e captura real do funcionamento no Chrome. A [política de privacidade pública](https://github.com/Slayer1Dev/arquivo-seguro/blob/main/PRIVACIDADE.md) contém o contato `hubdeferramentas@gmail.com`.
-
-Para gerar outro ZIP no futuro (no PowerShell; o `tar` do Git Bash gera um `.tar` com nome de `.zip`):
-
-```bash
-C:\Windows\System32\tar.exe -a -c -f arquivo-seguro-1.1.0.zip -C extensao manifest.json regras.js conteudo.js fundo.js aviso.html aviso.js popup.html popup.js icones
+```powershell
+git clone https://github.com/Slayer1Dev/arquivo-seguro.git
+Set-Location .\arquivo-seguro
+(Resolve-Path .\extensao).Path | Set-Clipboard
 ```
 
-Os ícones saem de `ferramentas/gerar-icones.ps1`.
+No Chrome, abra `chrome://extensions`, ative **Modo do desenvolvedor**, clique em **Carregar sem compactação** e selecione a pasta cujo caminho foi copiado. Se o seletor pedir um caminho, cole-o. A pasta correta é `extensao`, que contém `manifest.json`.
+
+Para atualizar uma instalação feita a partir desse clone, execute na pasta `arquivo-seguro`:
+
+```powershell
+git pull
+```
+
+Depois clique em **Recarregar** no cartão da própria extensão em `chrome://extensions`. Recarregar apenas a aba aberta não atualiza a extensão.
