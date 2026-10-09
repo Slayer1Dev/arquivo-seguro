@@ -6,7 +6,16 @@ const TODOS_OS_SITES = { origins: ['*://*/*'] };
 const ID_SCRIPT = 'arquivo-seguro-todos';
 const MAX_HISTORICO = 30;
 const ESPERA_CONFIRMACAO = 10_000;
+const ESPERA_NOME = 2_000;
 const PREFIXO_PENDENCIA = 'pendencia_';
+const PREFIXO_TRIAGEM = 'triagem_';
+const triagens = new Map();
+let ativoEmCache = null;
+chrome.storage.local.get({ ativo: true }).then(({ ativo }) => { ativoEmCache = ativo; })
+  .catch((erro) => console.warn('Arquivo Seguro, configuração indisponível:', erro));
+chrome.storage.onChanged.addListener((mudancas, area) => {
+  if (area === 'local' && mudancas.ativo) ativoEmCache = mudancas.ativo.newValue;
+});
 
 // O histórico é compartilhado com alertas de páginas; cada download tem sua própria fila.
 let fila = Promise.resolve();
@@ -36,11 +45,78 @@ async function buscarDownload(id) {
   return item;
 }
 
-// onCreated chega cedo, mas nem sempre traz o nome. onDeterminingFilename traz o nome
-// provisório e segura a conclusão só durante esta tentativa curta de pausa.
+// pause() é a primeira chamada no onCreated: não espere storage/search antes dela.
+// Mesmo assim, o Chrome já iniciou o download quando emite este evento.
+function iniciarTriagem(item) {
+  if (ativoEmCache === false || item.state !== 'in_progress' || item.paused) return null;
+  const triagem = {
+    pausa: chrome.downloads.pause(item.id).then(async () => {
+      // Se o worker reiniciar antes de saber o nome, a pausa temporária será recuperada.
+      try {
+        await chrome.storage.local.set({ [PREFIXO_TRIAGEM + item.id]: { id: item.id, inicio: Date.now() } });
+      } catch (erro) { console.warn('Arquivo Seguro, não foi possível salvar triagem:', erro); }
+      return true;
+    }, () => false),
+    timer: null
+  };
+  triagens.set(item.id, triagem);
+  return triagem;
+}
+
+async function concluirTriagem(id) {
+  const triagem = triagens.get(id);
+  if (!triagem) return;
+  if (triagem.timer) clearTimeout(triagem.timer);
+  try {
+    if (!await triagem.pausa) return;
+    // Uma pendência suspeita (ou a opção de confirmar todos) mantém a pausa.
+    if (await obterPendencia(id)) return;
+    let item = await buscarDownload(id);
+    if (!item || item.state !== 'in_progress' || !item.paused) return;
+    try { await chrome.downloads.resume(id); } catch (erro) { /* conferir abaixo */ }
+    item = await buscarDownload(id);
+    if (item && item.state === 'in_progress' && item.paused) {
+      // Nunca deixe um arquivo comum preso em silêncio se a retomada automática falhar.
+      await chrome.storage.local.set({ [chaveDe(id)]: {
+        id, inicio: Date.now(), nome: R.limparNome(item.filename) || 'Nome ainda não disponível',
+        site: R.hostDe(item.referrer) || R.hostDe(item.finalUrl || item.url),
+        nivel: 'geral', suspeito: false,
+        motivos: ['O Chrome não confirmou a retomada automática. Confira o download antes de decidir.'],
+        estado: item.state, pausado: true, podeRetomar: item.canResume === true, foiPausado: true
+      } });
+      await abrirAviso(id, false);
+    }
+  } finally {
+    try { await chrome.storage.local.remove(PREFIXO_TRIAGEM + id); }
+    finally { triagens.delete(id); }
+  }
+}
+
+function aguardarNome(id) {
+  const triagem = triagens.get(id);
+  if (!triagem || triagem.timer) return;
+  triagem.timer = setTimeout(() => {
+    enfileirarDownload(id, async () => {
+      const novo = await verificarDownload(id);
+      await concluirTriagem(id);
+      if (novo) await abrirAviso(id, false);
+    });
+  }, ESPERA_NOME);
+}
+
+// onDeterminingFilename traz um nome provisório, mas não impede a transferência.
 chrome.downloads.onCreated.addListener((item) => {
   if (item.id % 20 === 0) reconciliarPendencias().catch((erro) => console.warn('Arquivo Seguro:', erro));
-  enfileirarDownload(item.id, () => verificarDownload(item.id, item)).then((novo) => {
+  const triagem = iniciarTriagem(item);
+  enfileirarDownload(item.id, async () => {
+    if (triagem) await triagem.pausa;
+    const novo = await verificarDownload(item.id, item);
+    if (triagem) {
+      if (item.filename || ativoEmCache === false || await obterPendencia(item.id)) await concluirTriagem(item.id);
+      else aguardarNome(item.id);
+    }
+    return novo;
+  }).then((novo) => {
     if (novo) enfileirarDownload(item.id, () => abrirAviso(item.id, false));
   });
 });
@@ -51,7 +127,11 @@ chrome.downloads.onDeterminingFilename.addListener((item, suggest) => {
   };
   // Nunca espere a escolha da pessoa neste callback: ela fica no storage.local.
   const limite = setTimeout(liberarNome, 4000);
-  enfileirarDownload(item.id, () => verificarDownload(item.id, item)).then((novo) => {
+  enfileirarDownload(item.id, async () => {
+    const novo = await verificarDownload(item.id, item);
+    await concluirTriagem(item.id);
+    return novo;
+  }).then((novo) => {
     clearTimeout(limite);
     liberarNome();
     if (novo) enfileirarDownload(item.id, () => abrirAviso(item.id, false));
@@ -63,12 +143,20 @@ chrome.downloads.onDeterminingFilename.addListener((item, suggest) => {
 });
 chrome.downloads.onChanged.addListener((delta) => {
   if (!delta.filename && !delta.state && !delta.paused && !delta.canResume) return;
-  enfileirarDownload(delta.id, () => verificarDownload(delta.id)).then((novo) => {
+  enfileirarDownload(delta.id, async () => {
+    const novo = await verificarDownload(delta.id);
+    if (delta.filename || delta.state) await concluirTriagem(delta.id);
+    return novo;
+  }).then((novo) => {
     if (novo) enfileirarDownload(delta.id, () => abrirAviso(delta.id, false));
   });
 });
 chrome.downloads.onErased.addListener((id) => {
+  const triagem = triagens.get(id);
+  if (triagem && triagem.timer) clearTimeout(triagem.timer);
+  triagens.delete(id);
   enfileirarDownload(id, async () => {
+    await chrome.storage.local.remove(PREFIXO_TRIAGEM + id);
     const pendencia = await obterPendencia(id);
     if (pendencia && !pendencia.decisao) {
       await chrome.storage.local.set({ [chaveDe(id)]: { ...pendencia, estado: 'indisponivel', pausado: false, podeRetomar: false } });
@@ -80,6 +168,7 @@ async function verificarDownload(id, eventoItem) {
   const atual = await obterPendencia(id);
   if (atual && atual.decisao) return false;
   const { ativo, confirmarTodos } = await chrome.storage.local.get({ ativo: true, confirmarTodos: false });
+  ativoEmCache = ativo;
   if (!atual && !ativo) return false;
 
   let item = await buscarDownload(id);
@@ -212,6 +301,13 @@ async function decidirDownload(id, acao) {
 
 async function reconciliarPendencias() {
   const dados = await chrome.storage.local.get(null);
+  for (const [chave, triagem] of Object.entries(dados)) {
+    if (!chave.startsWith(PREFIXO_TRIAGEM) || !triagem || !Number.isInteger(triagem.id)) continue;
+    if (!triagens.has(triagem.id)) {
+      triagens.set(triagem.id, { pausa: Promise.resolve(true), timer: null });
+      aguardarNome(triagem.id);
+    }
+  }
   for (const [chave, pendencia] of Object.entries(dados)) {
     if (!chave.startsWith(PREFIXO_PENDENCIA) || !pendencia || !Number.isInteger(pendencia.id)) continue;
     if (pendencia.decisao === 'liberando') {

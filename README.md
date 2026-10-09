@@ -24,14 +24,14 @@ As regras também cobrem outras extensões de script, instalador, atalho, imagem
 
 Há dois pontos de verificação:
 
-1. **Download** (`extensao/fundo.js`): acompanha o download em qualquer site, tenta pausá-lo quando ele exige decisão e abre uma janela com o nome, os motivos e o estado real. O popup permite reencontrar decisões pendentes.
+1. **Download** (`extensao/fundo.js`): acompanha o download em qualquer site e tenta uma pausa preventiva assim que o Chrome informa que ele começou. Downloads comuns são retomados automaticamente quando a confirmação geral está desligada; os que exigem decisão mantêm a pausa, se o Chrome a confirmou. O popup permite reencontrar decisões pendentes.
 2. **Página** (`extensao/conteudo.js`): examina apenas controles visíveis com atributo de download ou metadado de nome de arquivo. Nos webmails e no WhatsApp Web, isso permite avisar sobre alguns anexos identificados por esses atributos. A opção “Verificar links de download em todos os sites” amplia a leitura de controles de download após permissão do navegador. Texto corrido, resultados de busca sem controle de download, elementos ocultos e links comuns não geram aviso na página; se um link comum iniciar um download, o monitor de downloads ainda analisa seu nome.
 
 ## Confirmação de downloads
 
-Com **“Pedir confirmação em TODO download” desligada** (padrão), downloads sem sinal suspeito seguem normalmente. Ao ligá-la no popup, a extensão tenta pedir decisão também para arquivos comuns. A opção “Proteção ligada” controla a verificação.
+Com **“Pedir confirmação em TODO download” desligada** (padrão), downloads sem sinal suspeito são liberados automaticamente após uma possível pausa breve de triagem. Ao ligá-la no popup, a extensão tenta pedir decisão também para arquivos comuns. A opção “Proteção ligada” controla a verificação.
 
-Para um download que exige decisão, a extensão tenta pausá-lo assim que o Chrome informa seu nome. Ela usa `onCreated`, `onDeterminingFilename` e mudanças posteriores de nome/estado; a determinação do nome é retida por um intervalo curto, de até 4 segundos no fluxo normal, para tentar a pausa. A janela só diz **“pausado”** depois de consultar o estado no Chrome. Se a pausa não foi confirmada, a janela informa que o download ainda está em andamento. Se ele já terminou, informa que foi baixado e oferece **“Apagar o arquivo”** como ação explícita.
+Com a proteção ligada, a extensão chama `pause()` imediatamente em `onCreated`, antes de consultar configurações e nome. Se o nome ainda não está disponível, aguarda brevemente `onDeterminingFilename` ou uma mudança posterior; sem nome nem decisão pendente, libera a pausa temporária depois de 2 segundos para não prender o download indefinidamente. Quando há um alerta, a janela só diz **“pausado”** depois de consultar o estado no Chrome. Se a pausa não foi confirmada, informa que o download ainda está em andamento. Se ele já terminou, informa que foi baixado e oferece **“Apagar o arquivo”** como ação explícita.
 
 Quando o download está pausado, **“Cancelar download”** é a ação principal. **“Baixar mesmo assim”** começa desabilitado e só fica disponível depois de 10 segundos. O início desse prazo fica salvo no navegador e o service worker confere o prazo novamente no clique. Fechar a janela não libera o download: abra o popup da extensão, encontre **“Downloads aguardando decisão”** e clique em **“Abrir aviso”**. Cada download mantém seu próprio nome, motivos, prazo e decisão. Cancelar não reinicia o download; retomar só é tentado se o Chrome ainda o mostrar ativo, pausado e retomável.
 
@@ -39,7 +39,7 @@ Quando o download está pausado, **“Cancelar download”** é a ação princip
 
 - A extensão não abre, executa nem examina o conteúdo dos arquivos. Ela não detecta malware e não garante que um arquivo seja seguro ou perigoso. Não substitui a proteção do navegador ou do antivírus.
 - A API de downloads informa o início e a determinação do nome quando o processo já começou. Um arquivo pequeno pode terminar antes que `pause()` consiga agir. Nesse caso, o aviso é posterior à conclusão; a extensão não afirma que bloqueou o arquivo. `cancel()` não transforma um download cancelado em pausado e não permite retomá-lo depois.
-- `onDeterminingFilename` segura a conclusão apenas até o callback `suggest()`; aqui ele é liberado após a tentativa curta de pausa, sem esperar uma escolha humana indefinidamente. A própria API não oferece uma garantia geral de bloqueio prévio baseada em nome. Veja a [documentação oficial de `chrome.downloads`](https://developer.chrome.com/docs/extensions/reference/api/downloads).
+- `onDeterminingFilename` retém a definição do nome de destino até o callback `suggest()`; isso não interrompe necessariamente a transferência. Aqui o callback é liberado em até 4 segundos, sem esperar uma escolha humana indefinidamente. A API não oferece garantia geral de bloqueio antes do início baseada no nome. Veja a [documentação oficial de `chrome.downloads`](https://developer.chrome.com/docs/extensions/reference/api/downloads).
 - O service worker do Manifest V3 pode ser encerrado após 30 segundos ocioso ou quando uma solicitação excede 5 minutos. A extensão salva decisões pendentes em `chrome.storage.local` e reconcilia seu estado quando volta a funcionar, mas não pode prometer que todo evento chegue antes de um download rápido. Veja o [ciclo de vida oficial do service worker](https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle).
 - A extensão não vê o que há **dentro** de um `.zip`, `.rar`, imagem de disco ou documento capaz de conter macros. O sufixo `.docm` ou `.xlsm` indica capacidade de macro, não a presença de macro no arquivo.
 - A leitura antecipada de anexos depende dos atributos usados por cada webmail, que podem mudar. Links sem metadado de download só são avaliados quando o Chrome informa um download. Nomes são exibidos como texto, sem interpretar o conteúdo deles como HTML.
@@ -48,7 +48,7 @@ Quando o download está pausado, **“Cancelar download”** é a ação princip
 
 **Detecta vírus ou malware?** Não. O alerta aponta sinais no nome e na extensão final; ele não examina o conteúdo do arquivo.
 
-**Consegue impedir todo download suspeito?** Não. A extensão tenta pausar downloads que pedem decisão depois que o Chrome informa o nome. Um arquivo pequeno pode terminar antes da pausa.
+**Consegue impedir todo download suspeito?** Não. A primeira tentativa de pausa ocorre assim que o Chrome avisa que o download começou, antes mesmo de informar o nome. Um arquivo pequeno ainda pode terminar antes da pausa.
 
 **Lê meus e-mails ou envia dados?** Não lê o texto corrido das mensagens nem envia dados. Em webmails compatíveis, examina controles visíveis de anexos que declaram um nome de arquivo. A opção de verificar controles de download em todos os sites exige permissão adicional do navegador.
 

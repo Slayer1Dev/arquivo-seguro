@@ -22,14 +22,14 @@ Additional script, installer, shortcut, disk-image, Office and archive extension
 
 The extension checks two places:
 
-1. **Downloads** ([`extensao/fundo.js`](extensao/fundo.js)): monitors downloads from any site, attempts to pause those requiring a decision, and opens an alert showing the name, reasons and actual download state. Pending decisions can be reopened from the popup.
+1. **Downloads** ([`extensao/fundo.js`](extensao/fundo.js)): monitors downloads from any site and attempts a preventive pause as soon as Chrome reports that a download has begun. Ordinary downloads are automatically resumed when confirmation for all downloads is off; those requiring a decision stay paused if Chrome confirmed the pause. Pending decisions can be reopened from the popup.
 2. **Pages** ([`extensao/conteudo.js`](extensao/conteudo.js)): examines only visible controls with a download attribute or declared filename metadata. On supported webmail sites and WhatsApp Web, some attachments can be flagged through these attributes. The optional “Verificar links de download em todos os sites” setting extends download-control checks after the browser grants permission. Ordinary prose, search results without download controls, hidden elements and ordinary links do not trigger a page alert. If an ordinary link starts a download, the downloads monitor still checks its filename.
 
 ## Download confirmation
 
-With **“Pedir confirmação em TODO download” off** (the default), downloads without a suspicious name continue normally. Turning it on in the popup makes the extension attempt to request a decision for ordinary files too. The **“Proteção ligada”** switch controls checking.
+With **“Pedir confirmação em TODO download” off** (the default), downloads without a suspicious name are automatically released after a possible brief screening pause. Turning it on in the popup makes the extension attempt to request a decision for ordinary files too. The **“Proteção ligada”** switch controls checking.
 
-For a download requiring a decision, the extension attempts to pause it as soon as Chrome reports its filename. It uses `onCreated`, `onDeterminingFilename`, and later filename/state changes. During the normal flow, filename determination is held briefly, for up to 4 seconds, while the pause is attempted. The alert says **“pausado”** (paused) only after checking Chrome's actual state. If the pause was not confirmed, it says the download is still in progress. If the download has finished, it says so and offers **“Apagar o arquivo”** (delete the file) as an explicit action.
+With protection on, the extension calls `pause()` immediately in `onCreated`, before looking up settings or the filename. If the name is not yet available, it briefly waits for `onDeterminingFilename` or a later change; without a name or pending decision, it releases the temporary pause after 2 seconds so the download is not left stuck. The alert says **“pausado”** (paused) only after checking Chrome's actual state. If the pause was not confirmed, it says the download is still in progress. If the download has finished, it says so and offers **“Apagar o arquivo”** (delete the file) as an explicit action.
 
 When a download is paused, **“Cancelar download”** (cancel download) is the primary action. **“Baixar mesmo assim”** (download anyway) starts disabled and becomes available after 10 seconds. The start of this delay is saved in the browser, and the service worker checks it again on click. Closing the alert does not release the download: open the extension popup, find **“Downloads aguardando decisão”** (downloads awaiting a decision), and click **“Abrir aviso”** (open alert). Each download has its own name, reasons, delay and decision. Canceling does not restart it; resuming is attempted only if Chrome still reports it as active, paused and resumable.
 
@@ -37,7 +37,7 @@ When a download is paused, **“Cancelar download”** (cancel download) is the 
 
 - This is a **suspicious filename warning**, not a malware scanner. It does not open, run or inspect file contents, cannot establish whether a file is safe or dangerous, and does not replace browser or antivirus protection.
 - Chrome's downloads API reports creation and filename determination after the download process has begun. A small file can finish before `pause()` takes effect. In that case, the alert appears after completion and does not claim the file was blocked. `cancel()` does not turn a canceled download into a paused, resumable one.
-- `onDeterminingFilename` holds filename determination only until its `suggest()` callback. This extension releases it after a short pause attempt instead of waiting indefinitely for a human choice. The API does not generally guarantee that a filename-based check can block a download before it starts. See the official [`chrome.downloads` documentation](https://developer.chrome.com/docs/extensions/reference/api/downloads).
+- `onDeterminingFilename` holds selection of the target filename until its `suggest()` callback; this does not necessarily stop data transfer. This extension calls the callback within 4 seconds instead of waiting indefinitely for a human choice. The API cannot generally guarantee that a filename-based check blocks a download before it starts. See the official [`chrome.downloads` documentation](https://developer.chrome.com/docs/extensions/reference/api/downloads).
 - A Manifest V3 service worker can stop after 30 seconds of inactivity or when a request exceeds 5 minutes. Pending decisions are saved in `chrome.storage.local` and reconciled when it resumes, but the extension cannot promise to act before every fast download completes. See the official [service worker lifecycle documentation](https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle).
 - The extension cannot see **inside** a `.zip`, `.rar`, disk image or macro-capable document. A `.docm` or `.xlsm` suffix means the format can contain macros; it does not prove that this particular file contains one.
 - Early attachment checks depend on attributes exposed by each webmail interface, which can change. Links without download metadata are evaluated only when Chrome reports an actual download. Filenames are displayed as text, never interpreted as HTML.
@@ -46,7 +46,7 @@ When a download is paused, **“Cancelar download”** (cancel download) is the 
 
 **Does it detect viruses or malware?** No. It flags signals in the filename and final extension without inspecting file contents.
 
-**Can it stop every suspicious download?** No. It tries to pause downloads requiring a decision after Chrome reports their names. A small download may finish first.
+**Can it stop every suspicious download?** No. It first tries to pause as soon as Chrome reports that the download has started, even before a filename is available. A small download may still finish first.
 
 **Does it read my emails or send data?** It does not read ordinary message text or send data. On supported webmail sites, it checks visible attachment controls that declare a filename. Checking download controls on all sites requires additional browser permission.
 

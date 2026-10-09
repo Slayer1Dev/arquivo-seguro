@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Arquivo Seguro: alerta de anexo disfarçado",
   "short_name": "Arquivo Seguro",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Avisa quando um anexo ou download finge ser PDF, mas é um script ou programa. Roda no seu computador, sem enviar dados.",
   "minimum_chrome_version": "102",
   "icons": {

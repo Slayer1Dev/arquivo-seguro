@@ -23,7 +23,7 @@ function ambiente(config = {}) {
   const dados = { ativo: true, confirmarTodos: false, ...config };
   const downloads = new Map();
   const janelas = new Map();
-  const chamadas = { pause: [], resume: [], cancel: [], janelas: [], badge: [] };
+  const chamadas = { pause: [], resume: [], cancel: [], janelas: [], badge: [], ordem: [] };
   const eventos = {
     created: evento(), determining: evento(), changed: evento(), erased: evento(),
     message: evento(), installed: evento(), startup: evento(),
@@ -35,9 +35,11 @@ function ambiente(config = {}) {
   let proximoTimer = 1;
   const timers = new Map();
   const pausasQueFalham = new Set();
+  const retomadasQueFalham = new Set();
 
   const storage = {
     async get(chaves) {
+      chamadas.ordem.push('storage.get');
       if (chaves === null) return copiar(dados);
       if (typeof chaves === 'string') return { [chaves]: copiar(dados[chaves]) };
       if (Array.isArray(chaves)) return Object.fromEntries(chaves.map((chave) => [chave, copiar(dados[chave])]));
@@ -64,10 +66,12 @@ function ambiente(config = {}) {
       onChanged: eventos.changed,
       onErased: eventos.erased,
       async search(filtro) {
+        chamadas.ordem.push('downloads.search');
         const item = downloads.get(filtro.id);
         return item ? [copiar(item)] : [];
       },
       async pause(id) {
+        chamadas.ordem.push('downloads.pause');
         chamadas.pause.push(id);
         const item = downloads.get(id);
         if (pausasQueFalham.has(id) || !item || item.state !== 'in_progress') throw Error('Não foi possível pausar');
@@ -76,9 +80,10 @@ function ambiente(config = {}) {
         eventos.changed.emitir({ id, paused: { current: true }, canResume: { current: true } });
       },
       async resume(id) {
+        chamadas.ordem.push('downloads.resume');
         chamadas.resume.push(id);
         const item = downloads.get(id);
-        if (!item || item.state !== 'in_progress' || !item.paused || !item.canResume) throw Error('Não pode retomar');
+        if (retomadasQueFalham.has(id) || !item || item.state !== 'in_progress' || !item.paused || !item.canResume) throw Error('Não pode retomar');
         item.paused = false;
         eventos.changed.emitir({ id, paused: { current: false } });
       },
@@ -135,6 +140,7 @@ function ambiente(config = {}) {
 
   function carregarWorker() {
     for (const e of Object.values(eventos)) e.limpar();
+    timers.clear(); // suspensão do worker remove timers em memória
     class DataDeTeste extends Date { static now() { return agora; } }
     const contexto = { chrome, Date: DataDeTeste, console,
       setTimeout(fn) { const id = proximoTimer++; timers.set(id, fn); return id; },
@@ -168,7 +174,7 @@ function ambiente(config = {}) {
 
   carregarWorker();
   return {
-    dados, downloads, janelas, chamadas, eventos, timers, pausasQueFalham,
+    dados, downloads, janelas, chamadas, eventos, timers, pausasQueFalham, retomadasQueFalham,
     adicionar, estabilizar, mensagem, carregarWorker,
     pendencia: (id) => copiar(dados['pendencia_' + id]),
     avancar: (ms) => { agora += ms; },
@@ -179,7 +185,9 @@ function ambiente(config = {}) {
 async function testePausaEAvisoUnico() {
   const h = ambiente();
   h.adicionar(1, 'Boleto.pdf.js');
+  h.chamadas.ordem.length = 0;
   h.eventos.created.emitir(copiar(h.downloads.get(1)));
+  assert.equal(h.chamadas.ordem[0], 'downloads.pause', 'onCreated tenta pausar antes de ler storage ou consultar search');
   await h.estabilizar();
   assert.equal(h.downloads.get(1).paused, true, 'suspeito foi pausado');
   assert.equal(h.pendencia(1).nome, 'Boleto.pdf.js');
@@ -288,6 +296,8 @@ async function testeComumEConfirmacaoGeral() {
   await h.estabilizar();
   assert.equal(h.pendencia(7), undefined, 'comum segue sem aviso quando opção está desligada');
   assert.equal(h.downloads.get(7).paused, false);
+  assert.deepEqual(h.chamadas.pause, [7], 'pausa preventiva alcança arquivo comum');
+  assert.deepEqual(h.chamadas.resume, [7], 'arquivo comum é liberado automaticamente');
   assert.equal(h.chamadas.janelas.length, 0);
   h.dados.confirmarTodos = true;
   h.adicionar(8, 'relatorio.pdf');
@@ -370,6 +380,8 @@ async function testeNomeChegaDepois() {
   h.eventos.created.emitir(copiar(h.downloads.get(12)));
   await h.estabilizar();
   assert.equal(h.pendencia(12), undefined);
+  assert.equal(h.downloads.get(12).paused, true, 'pausa preventiva segura arquivo sem nome durante a triagem');
+  assert.deepEqual(h.chamadas.resume, []);
   h.downloads.get(12).filename = 'Boleto.pdf.js';
   let sugestoes = 0;
   let pausaAntesDaSugestao = false;
@@ -382,6 +394,58 @@ async function testeNomeChegaDepois() {
   assert.equal(h.pendencia(12).nome, 'Boleto.pdf.js');
   assert.equal(sugestoes, 1);
   assert.equal(pausaAntesDaSugestao, true, 'tentou pausar antes de liberar a sugestão do nome');
+}
+
+async function testeNomeNuncaChega() {
+  const h = ambiente();
+  h.adicionar(16, '');
+  h.eventos.created.emitir(copiar(h.downloads.get(16)));
+  await h.estabilizar();
+  assert.equal(h.downloads.get(16).paused, true);
+  const [liberar] = h.timers.values();
+  assert.equal(typeof liberar, 'function');
+  liberar();
+  await h.estabilizar();
+  assert.equal(h.downloads.get(16).paused, false, 'nome ausente não deixa arquivo pausado indefinidamente');
+  assert.equal(h.pendencia(16), undefined);
+}
+
+async function testeReinicioDuranteTriagemSemNome() {
+  const h = ambiente();
+  h.adicionar(18, '');
+  h.eventos.created.emitir(copiar(h.downloads.get(18)));
+  await h.estabilizar();
+  assert.equal(h.downloads.get(18).paused, true);
+  assert.equal(h.dados.triagem_18.id, 18, 'pausa temporária é registrada');
+  h.carregarWorker();
+  await h.estabilizar();
+  const [liberar] = h.timers.values();
+  assert.equal(typeof liberar, 'function', 'novo worker recupera a triagem');
+  liberar();
+  await h.estabilizar();
+  assert.equal(h.downloads.get(18).paused, false);
+  assert.equal(h.dados.triagem_18, undefined, 'marcador temporário é removido');
+}
+
+async function testeRetomadaAutomaticaFalhou() {
+  const h = ambiente();
+  h.adicionar(17, 'relatorio.pdf');
+  h.retomadasQueFalham.add(17);
+  h.eventos.created.emitir(copiar(h.downloads.get(17)));
+  await h.estabilizar();
+  assert.equal(h.downloads.get(17).paused, true);
+  assert.equal(h.pendencia(17).nivel, 'geral', 'falha de retomada é visível para a pessoa');
+  assert.equal(h.chamadas.janelas.length, 1);
+}
+
+async function testeProtecaoDesligadaNaoPrendeDownload() {
+  const h = ambiente({ ativo: false });
+  h.adicionar(19, '');
+  h.eventos.created.emitir(copiar(h.downloads.get(19)));
+  await h.estabilizar();
+  assert.equal(h.downloads.get(19).paused, false);
+  assert.equal(h.pendencia(19), undefined);
+  assert.equal(h.dados.triagem_19, undefined);
 }
 
 async function testePausaFalhou() {
@@ -409,5 +473,9 @@ await testeNomeAlterado();
 await testeEstadoMudou();
 await testeJanelaFechadaEReaberta();
 await testeNomeChegaDepois();
+await testeNomeNuncaChega();
+await testeReinicioDuranteTriagemSemNome();
+await testeRetomadaAutomaticaFalhou();
+await testeProtecaoDesligadaNaoPrendeDownload();
 await testePausaFalhou();
 console.log('fluxo: todos os testes passaram');

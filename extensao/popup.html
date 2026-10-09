@@ -8,6 +8,7 @@
   body { margin: 0; width: 340px; font: 14px/1.45 system-ui, "Segoe UI", Roboto, sans-serif; color: #1f1f1f; background: #fff; }
   header { padding: 12px 14px; border-bottom: 1px solid #e0e0e0; display: flex; align-items: center; gap: 10px; }
   header img { width: 28px; height: 28px; }
+  header .versao { margin-left: auto; color: #5f6368; font-size: 12px; }
   h1 { margin: 0; font-size: 16px; }
   section { padding: 10px 14px; border-bottom: 1px solid #e0e0e0; }
   label { display: flex; gap: 10px; align-items: flex-start; padding: 5px 0; cursor: pointer; }
@@ -28,14 +29,14 @@
 </style>
 </head>
 <body>
-  <header><img src="icones/icone48.png" alt=""><h1>Arquivo Seguro</h1></header>
+  <header><img src="icones/icone48.png" alt=""><h1>Arquivo Seguro</h1><span class="versao" id="versao"></span></header>
   <section>
     <label><input type="checkbox" id="ativo">
       <span>Proteção ligada<small>Confere downloads e anexos de e-mail e WhatsApp Web.</small></span></label>
     <label><input type="checkbox" id="todos">
       <span>Verificar links de download em todos os sites<small>Opcional. O navegador vai pedir sua permissão.</small></span></label>
     <label><input type="checkbox" id="confirmarTodos">
-      <span>Pedir confirmação em TODO download<small>Desligado por padrão. Quando consegue pausar, exige 10 segundos para continuar.</small></span></label>
+      <span>Pedir confirmação em TODO download<small>Desligado por padrão. Ligado: tenta pausar todos para sua decisão.</small></span></label>
   </section>
   <section>
     <h2>Downloads aguardando decisão</h2>

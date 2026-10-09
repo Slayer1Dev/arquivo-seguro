@@ -1,5 +1,6 @@
 const TODOS_OS_SITES = { origins: ['*://*/*'] };
 const $ = (id) => document.getElementById(id);
+$('versao').textContent = 'v' + chrome.runtime.getManifest().version;
 
 function desenharHistorico(historico) {
   $('lista').textContent = '';

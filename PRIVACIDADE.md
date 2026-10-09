@@ -15,7 +15,7 @@ O texto corrido das páginas, dos e-mails e das mensagens não é varrido. Em p�
 
 ## O que fica guardado
 
-Somente no seu navegador (`chrome.storage.local`): suas preferências, a lista dos últimos 30 alertas (nome do arquivo, site e horário) e os dados necessários para decisões de download (nome, motivos, estado, horário de início e escolha). O botão "Limpar" apaga a lista de alertas; remover a extensão apaga os dados locais dela.
+Somente no seu navegador (`chrome.storage.local`): suas preferências, a lista dos últimos 30 alertas (nome do arquivo, site e horário), os dados necessários para decisões de download (nome, motivos, estado, horário de início e escolha) e um marcador temporário da pausa inicial enquanto o nome é identificado. O botão "Limpar" apaga a lista de alertas; remover a extensão apaga os dados locais dela.
 
 ## Permissões
 
