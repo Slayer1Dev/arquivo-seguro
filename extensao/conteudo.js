@@ -1,4 +1,4 @@
-// Content script: procura na página anexos e links que fingem ser documento e mostra um aviso.
+// Content script: examina somente controles de download e metadados de anexos visíveis.
 // Nada sai do navegador; a única mensagem enviada vai para o service worker da própria extensão.
 (() => {
   'use strict';
@@ -11,12 +11,21 @@
   const ID_AVISO = 'arquivo-seguro-aviso';
   const ID_ESTILO = 'arquivo-seguro-estilo';
   const MARCA = 'data-arquivo-seguro';
-  const IGNORAR_TEXTO = { SCRIPT: 1, STYLE: 1, NOSCRIPT: 1, TEXTAREA: 1 };
 
   const dispensados = new Set();
   const relatados = new Set();
   let assinatura = '';
   let agendado = null;
+
+  function visivel(el) {
+    if (!el.getClientRects().length) return false;
+    for (let atual = el; atual && atual.nodeType === 1; atual = atual.parentElement) {
+      if (atual.hidden || atual.getAttribute('aria-hidden') === 'true' || atual.getAttribute('inert') !== null) return false;
+      const estilo = getComputedStyle(atual);
+      if (estilo.display === 'none' || estilo.visibility !== 'visible' || Number(estilo.opacity) === 0) return false;
+    }
+    return true;
+  }
 
   function varrer() {
     agendado = null;
@@ -31,37 +40,31 @@
       if (el && el.nodeType === 1 && el.getAttribute(MARCA) !== resultado.nivel) el.setAttribute(MARCA, resultado.nivel);
     };
 
-    for (const el of document.querySelectorAll('a[href], a[download], [download_url]')) {
+    // Texto de artigos, buscas, mensagens e nós ocultos não é nome de download.
+    // Só controles que declaram um download/anexo podem gerar aviso na página.
+    for (const el of document.querySelectorAll('[download_url], a[download], [data-filename], [data-file-name]')) {
+      if (!visivel(el)) continue;
+      let resultado = null;
       // Gmail guarda o anexo como "tipo:nome:url".
       const anexo = el.getAttribute('download_url');
       if (anexo) {
         const partes = anexo.split(':');
-        if (partes.length >= 3) anotar(R.analisarNome(partes[1], { deEmail: true }), el);
-        continue;
+        if (partes.length >= 3) resultado = R.analisarNome(partes[1], { deEmail });
       }
-      const r = R.analisarLink({
-        href: typeof el.href === 'string' ? el.href : '',
-        download: el.getAttribute('download'),
-        texto: (el.textContent || '').trim() || el.getAttribute('title') || '',
-        deEmail
-      });
-      // Link comum para "app.js" não é golpe; só interessa quando há disfarce.
-      if (r && r.disfarcado) anotar(r, el);
-    }
-
-    for (const el of document.querySelectorAll('[title], [aria-label]')) {
-      const rotulo = (el.getAttribute('title') || '') + ' ' + (el.getAttribute('aria-label') || '');
-      if (!R.temDisfarce(rotulo)) continue;
-      for (const nome of R.acharDisfarces(rotulo)) anotar(R.analisarNome(nome, { deEmail }), el);
-    }
-
-    if (R.temDisfarce(document.body.textContent)) {
-      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-      for (let no = walker.nextNode(); no; no = walker.nextNode()) {
-        const pai = no.parentElement;
-        if (!pai || IGNORAR_TEXTO[pai.tagName] || pai.isContentEditable || !R.temDisfarce(no.nodeValue)) continue;
-        for (const nome of R.acharDisfarces(no.nodeValue)) anotar(R.analisarNome(nome, { deEmail }), pai);
+      const interativo = el.tagName === 'A' || el.tagName === 'BUTTON' || el.getAttribute('role') === 'button';
+      if (!resultado && deEmail && interativo) {
+        const nome = el.getAttribute('data-filename') || el.getAttribute('data-file-name');
+        if (nome) resultado = R.analisarNome(nome, { deEmail: true });
       }
+      if (!resultado && el.tagName === 'A' && el.getAttribute('download') !== null) {
+        resultado = R.analisarLink({
+          href: typeof el.href === 'string' ? el.href : '',
+          download: el.getAttribute('download'),
+          texto: (el.innerText || '').trim(),
+          deEmail
+        });
+      }
+      if (resultado && (deEmail || resultado.disfarcado)) anotar(resultado, el);
     }
 
     for (const el of document.querySelectorAll('[' + MARCA + ']')) if (!marcados.has(el)) el.removeAttribute(MARCA);
@@ -167,7 +170,10 @@
   function iniciar() {
     varrer();
     // Webmail troca o conteúdo sem recarregar a página.
-    new MutationObserver(agendar).observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+    new MutationObserver(agendar).observe(document.documentElement, {
+      childList: true, subtree: true, characterData: true, attributes: true,
+      attributeFilter: ['download_url', 'download', 'data-filename', 'data-file-name', 'href', 'class', 'style', 'hidden', 'aria-hidden', 'inert']
+    });
   }
 
   if (naExtensao) {

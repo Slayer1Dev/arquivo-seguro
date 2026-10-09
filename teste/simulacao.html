@@ -21,7 +21,7 @@
 
 <div class="email" id="golpe2">
   <strong>NF-e emitida</strong>
-  <p>Baixe sua nota: <a href="https://exemplo.invalid/arquivos/nf4471.hta">Nota_Fiscal_4471.pdf</a></p>
+  <p>Baixe sua nota: <a href="https://exemplo.invalid/arquivos/nf4471.hta" download="nf4471.hta">Nota_Fiscal_4471.pdf</a></p>
 </div>
 
 <div class="email" id="normal">
@@ -29,6 +29,9 @@
   <p>Novidades do Node.js e do Next.js, veja o <a href="https://exemplo.invalid/repo/app.js">app.js</a> de exemplo
      e o <a href="https://exemplo.invalid/docs/relatorio.pdf">relatorio.pdf</a>. Também há
      <a href="https://exemplo.invalid/ver.html">manual.pdf</a> para ler no navegador.</p>
+  <p>Este artigo explica o PDF.js e mostra, apenas como texto, o exemplo Fatura_Bancaria_2026.pdf.js.</p>
+  <p hidden>Exemplo oculto para testar: Boleto_Atrasado.pdf.exe.</p>
+  <p>Este <a href="https://exemplo.invalid/artigos/Fatura.pdf.js">link de artigo</a> não é um anexo.</p>
 </div>
 
 <button id="chegar" type="button">Simular novo e-mail chegando</button>
@@ -40,7 +43,7 @@
   document.getElementById('chegar').addEventListener('click', () => {
     const div = document.createElement('div');
     div.className = 'email';
-    div.innerHTML = '<strong>Currículo</strong><p>Anexo: <span class="anexo">curriculo.docx.lnk</span></p>';
+    div.innerHTML = '<strong>Currículo</strong><p>Anexo: <span class="anexo" download_url="application/octet-stream:curriculo.docx.lnk:https://exemplo.invalid/anexo/3">curriculo.docx.lnk</span></p>';
     document.getElementById('novos').appendChild(div);
   });
 </script>

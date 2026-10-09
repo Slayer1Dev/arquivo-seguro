@@ -15,6 +15,8 @@ assert.equal(nivel('fatura\u202Efdp.js'), 'alto');
 assert.equal(nivel('Fatura%20Claro.pdf.vbs'), 'alto');
 assert.equal(nivel('relatorio.pdf.js.'), 'alto', 'ponto final não esconde a extensão');
 assert.equal(nivel('fotos.jpg.zip'), 'medio');
+assert.equal(nivel('PDF.js'), 'medio', 'biblioteca PDF.js não finge ter extensão dupla');
+assert.equal(R.analisarNome('PDF.js').disfarcado, false, 'PDF.js não é nome de documento seguido de script');
 
 // Novas extensões Windows: o sufixo real continua sendo o que decide o tipo.
 for (const ext of ['scf', 'appref-ms', 'psm1', 'msixbundle', 'appxbundle']) {
@@ -111,13 +113,6 @@ assert.equal(link('https://x.test/Nota%20Fiscal.pdf.js', 'Baixar anexo').nome, '
   'decodificar o último componente da URL');
 assert.equal(link('https://x.test/a/normal.txt', 'Baixar', 'Boleto%2Epdf%2Ejs'), null,
   'não decodificar porcentagem literal no atributo download');
-
-// Texto corrido: só extensão dupla.
-assert.deepEqual(R.acharDisfarces('Segue em anexo Boleto.pdf.js e também foto.png.exe, ok?'), ['Boleto.pdf.js', 'foto.png.exe']);
-assert.equal(R.temDisfarce('Feito com Node.js, Next.js e jquery.min.js; veja index.js e https://site.com/a.pdf'), false);
-assert.equal(R.temDisfarce('Acesse www.docs.pdf.com hoje'), false);
-assert.deepEqual(R.acharDisfarces('Veja Boleto pdf.js e Fatura_pdf.exe.'), ['Boleto pdf.js', 'Fatura_pdf.exe']);
-assert.equal(R.temDisfarce('Veja Boleto pdf e Fatura_pdf.pdf.'), false, 'documentos normais no texto');
 
 // Origem de e-mail.
 assert.equal(R.ehWebmailUrl('https://mail.google.com/mail/u/0/'), true);

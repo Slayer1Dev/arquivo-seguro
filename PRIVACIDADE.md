@@ -9,9 +9,9 @@ As informações obtidas pelas APIs do navegador são usadas somente para os ale
 ## O que a extensão lê
 
 - **Nome dos arquivos baixados**, endereço do site de origem e estado do download, para analisar o nome e, quando necessário, pedir sua decisão antes de continuar.
-- **Texto exibido na página, rótulos e links** nas páginas de e-mail e mensagens listadas na instalação (Gmail, Outlook, Yahoo Mail, Proton Mail, Zoho Mail e WhatsApp Web). A extensão examina esse texto localmente para encontrar nomes de arquivo com sinais de disfarce. Se você ligar a opção "Verificar links em todos os sites", a mesma análise será feita nas demais páginas após a permissão do navegador.
+- **Nomes em controles visíveis de download e metadados de nome de arquivo** nas páginas de e-mail e mensagens listadas na instalação (Gmail, Outlook, Yahoo Mail, Proton Mail, Zoho Mail e WhatsApp Web). Se você ligar a opção "Verificar links de download em todos os sites", a extensão também examinará os controles de download das demais páginas após a permissão do navegador.
 
-O texto dos e-mails e mensagens é examinado apenas para localizar esses nomes; o conteúdo integral não é guardado nem enviado. O conteúdo dos arquivos nunca é aberto.
+O texto corrido das páginas, dos e-mails e das mensagens não é varrido. Em páginas de busca, somente controles explícitos de download são examinados. O conteúdo dos arquivos nunca é aberto.
 
 ## O que fica guardado
 

@@ -21,7 +21,7 @@ As regras também cobrem outras extensões de script, instalador, atalho, imagem
 Há dois pontos de verificação:
 
 1. **Download** (`extensao/fundo.js`): acompanha o download em qualquer site, tenta pausá-lo quando ele exige decisão e abre uma janela com o nome, os motivos e o estado real. O popup permite reencontrar decisões pendentes.
-2. **Página** (`extensao/conteudo.js`): no Gmail, Outlook, Yahoo, Proton, Zoho e WhatsApp Web, marca nomes suspeitos de anexos e links e avisa antes do clique. A opção “Verificar links em todos os sites” amplia essa leitura somente após permissão do navegador.
+2. **Página** (`extensao/conteudo.js`): examina apenas controles visíveis com atributo de download ou metadado de nome de arquivo. Nos webmails e no WhatsApp Web, isso permite avisar sobre alguns anexos identificados por esses atributos. A opção “Verificar links de download em todos os sites” amplia a leitura de controles de download após permissão do navegador. Texto corrido, resultados de busca sem controle de download, elementos ocultos e links comuns não geram aviso na página; se um link comum iniciar um download, o monitor de downloads ainda analisa seu nome.
 
 ## Confirmação de downloads
 
@@ -38,7 +38,7 @@ Quando o download está pausado, **“Cancelar download”** é a ação princip
 - `onDeterminingFilename` segura a conclusão apenas até o callback `suggest()`; aqui ele é liberado após a tentativa curta de pausa, sem esperar uma escolha humana indefinidamente. A própria API não oferece uma garantia geral de bloqueio prévio baseada em nome. Veja a [documentação oficial de `chrome.downloads`](https://developer.chrome.com/docs/extensions/reference/api/downloads).
 - O service worker do Manifest V3 pode ser encerrado após 30 segundos ocioso ou quando uma solicitação excede 5 minutos. A extensão salva decisões pendentes em `chrome.storage.local` e reconcilia seu estado quando volta a funcionar, mas não pode prometer que todo evento chegue antes de um download rápido. Veja o [ciclo de vida oficial do service worker](https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle).
 - A extensão não vê o que há **dentro** de um `.zip`, `.rar`, imagem de disco ou documento capaz de conter macros. O sufixo `.docm` ou `.xlsm` indica capacidade de macro, não a presença de macro no arquivo.
-- A leitura de anexos na página depende do HTML de cada webmail, que pode mudar. Nomes são exibidos como texto, sem interpretar o conteúdo deles como HTML.
+- A leitura antecipada de anexos depende dos atributos usados por cada webmail, que podem mudar. Links sem metadado de download só são avaliados quando o Chrome informa um download. Nomes são exibidos como texto, sem interpretar o conteúdo deles como HTML.
 
 ## Testar com arquivos inofensivos
 
@@ -47,6 +47,7 @@ Os arquivos em `teste/iscas/` contêm somente texto ou comentários. O nome é o
 ```bash
 node teste/regras.test.mjs
 node teste/fluxo.test.mjs
+node teste/conteudo.test.mjs
 node teste/servidor.mjs
 ```
 

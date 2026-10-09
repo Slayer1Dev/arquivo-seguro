@@ -100,7 +100,10 @@
     // A falsa extensão pode estar separada por ponto, espaço ou underscore.
     // "pdf-leitor-setup.exe" não casa: PDF não é o sufixo que parece final.
     const penultima = /(?:^|[.\s_-])([a-z0-9]{1,5})[.\s_]*$/i.exec(base);
-    const falsa = penultima && penultima[1].toLowerCase();
+    // "PDF.js" é um nome de script comum: só há extensão dupla se existir
+    // um nome de arquivo antes da extensão que ele finge ter.
+    const falsa = penultima && /[^\s._-]/.test(base.slice(0, penultima.index))
+      ? penultima[1].toLowerCase() : null;
     if (falsa && DOCUMENTO.includes(falsa) && (categoria !== 'compactado' || DOC_FORTE.includes(falsa))) {
       disfarcado = true;
       motivos.push('O nome sugere um arquivo ' + falsa.toUpperCase() + ', mas a extensão final é ".' + ext + '".');
@@ -127,7 +130,7 @@
       }
     }
 
-    const isca = ISCA.test(base) || PDF_NO_FIM.test(base);
+    const isca = ISCA.test(base) || (PDF_NO_FIM.test(base) && !/^pdf$/i.test(base.trim()));
     const imitaAplicativo = APP_CONHECIDO.test(base) && APARENCIA_DOCUMENTO.test(base);
     const atalho = ['lnk', 'url', 'scf', 'appref-ms'].includes(ext);
     if (atalho && !disfarcado && (isca || imitaAplicativo)) {
@@ -172,24 +175,6 @@
     return analisarNome(nome, { textoVisivel: link.texto, deEmail: link.deEmail });
   }
 
-  // No texto corrido só procuramos extensão dupla: "Node.js" e "index.js" aparecem em todo lugar.
-  // "com" e "url" ficam de fora porque casam com endereços de site.
-  const PERIGOSAS_NO_TEXTO = [].concat(CATEGORIAS.script, CATEGORIAS.instalador, CATEGORIAS.disco,
-    CATEGORIAS.web, CATEGORIAS.macro, CATEGORIAS.compactado).filter(function (e) { return e !== 'com' && e !== 'url'; });
-  const ENTRE_EXTENSOES = '[.\\s_\\u00ad\\u061c\\u180e\\u200b-\\u200f\\u202a-\\u202e\\u2060\\u2066-\\u206f\\ufeff]';
-  const FONTE_DUPLA = '[^\\s\\\\/:*?"<>|]{1,100}[._\\s](?:' + DOCUMENTO.join('|') + ')' + ENTRE_EXTENSOES + '{0,40}\\.(?:' +
-    PERIGOSAS_NO_TEXTO.join('|') + ')(?!\\w|\\.\\w)';
-  const RE_TEM_DUPLA = new RegExp(FONTE_DUPLA, 'i');
-
-  function temDisfarce(texto) {
-    return !!texto && RE_TEM_DUPLA.test(texto);
-  }
-
-  function acharDisfarces(texto) {
-    const nomes = String(texto || '').match(new RegExp(FONTE_DUPLA, 'gi')) || [];
-    return Array.from(new Set(nomes));
-  }
-
   function ehWebmail(host) {
     return HOSTS_MENSAGEM.includes(String(host || '').toLowerCase());
   }
@@ -204,7 +189,7 @@
   }
 
   raiz.ArquivoSeguroRegras = {
-    analisarNome: analisarNome, analisarLink: analisarLink, temDisfarce: temDisfarce, acharDisfarces: acharDisfarces,
+    analisarNome: analisarNome, analisarLink: analisarLink,
     ehWebmail: ehWebmail, ehWebmailUrl: ehWebmailUrl, hostDe: hostDe, limparNome: limparNome
   };
 })(typeof self !== 'undefined' ? self : globalThis);
