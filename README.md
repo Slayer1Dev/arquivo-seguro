@@ -1,6 +1,10 @@
-# Arquivo Seguro
+# Arquivo Seguro — alertas para anexos e downloads com extensão disfarçada
 
-Extensão de navegador (Chrome, Edge, Brave; Manifest V3) que analisa **somente o nome** de anexos e downloads. Ela avisa quando o nome sugere um documento comum, mas a extensão final indica outro formato que merece atenção. A análise e as decisões ficam no navegador; a extensão não envia dados.
+[Português](README.md) · [English](README.en.md)
+
+**Arquivo Seguro** é uma extensão de segurança para Chrome, Edge e Brave (Manifest V3) que alerta sobre nomes de anexos e downloads com **extensão dupla ou disfarçada**. Por exemplo, `Boleto.pdf.js` parece um PDF, mas termina em `.js`. A extensão avalia o nome, a extensão final e, quando disponíveis, metadados do download ou do controle de download. Ela não lê o conteúdo dos arquivos nem o texto corrido de páginas e mensagens. A análise e as decisões ficam no navegador; a extensão não envia dados.
+
+**English summary:** Arquivo Seguro is a browser extension that flags disguised file extensions in downloads and visible attachment controls. It checks filenames and download metadata locally; it does not scan file contents. [Read the full English README](README.en.md).
 
 ## O que ela detecta
 
@@ -39,6 +43,16 @@ Quando o download está pausado, **“Cancelar download”** é a ação princip
 - O service worker do Manifest V3 pode ser encerrado após 30 segundos ocioso ou quando uma solicitação excede 5 minutos. A extensão salva decisões pendentes em `chrome.storage.local` e reconcilia seu estado quando volta a funcionar, mas não pode prometer que todo evento chegue antes de um download rápido. Veja o [ciclo de vida oficial do service worker](https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle).
 - A extensão não vê o que há **dentro** de um `.zip`, `.rar`, imagem de disco ou documento capaz de conter macros. O sufixo `.docm` ou `.xlsm` indica capacidade de macro, não a presença de macro no arquivo.
 - A leitura antecipada de anexos depende dos atributos usados por cada webmail, que podem mudar. Links sem metadado de download só são avaliados quando o Chrome informa um download. Nomes são exibidos como texto, sem interpretar o conteúdo deles como HTML.
+
+## Perguntas frequentes
+
+**Detecta vírus ou malware?** Não. O alerta aponta sinais no nome e na extensão final; ele não examina o conteúdo do arquivo.
+
+**Consegue impedir todo download suspeito?** Não. A extensão tenta pausar downloads que pedem decisão depois que o Chrome informa o nome. Um arquivo pequeno pode terminar antes da pausa.
+
+**Lê meus e-mails ou envia dados?** Não lê o texto corrido das mensagens nem envia dados. Em webmails compatíveis, examina controles visíveis de anexos que declaram um nome de arquivo. A opção de verificar controles de download em todos os sites exige permissão adicional do navegador.
+
+**Por que uma página de busca com exemplos não deve gerar aviso?** Texto comum, links sem indicação de download e elementos ocultos não são tratados como anexos. Se algum link iniciar um download real, o monitor de downloads avalia o nome informado pelo Chrome.
 
 ## Testar com arquivos inofensivos
 
@@ -80,4 +94,4 @@ Para atualizar uma instalação feita a partir desse clone, execute na pasta `ar
 git pull
 ```
 
-Depois clique em **Recarregar** no cartão da própria extensão em `chrome://extensions`. Recarregar apenas a aba aberta não atualiza a extensão.
+Depois clique em **Recarregar** no cartão da própria extensão em `chrome://extensions` e recarregue as abas abertas onde deseja usar a verificação de anexos. Recarregar apenas a aba não atualiza a extensão.
